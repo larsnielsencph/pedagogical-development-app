@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
 
 const weeks = [
@@ -64,12 +64,38 @@ const weeks = [
   }
 ];
 
+// NotesEditor komponent
+const NotesEditor = memo(({ weekId, initialValue, onSave }) => {
+  const [localNote, setLocalNote] = useState(initialValue || '');
+
+  useEffect(() => {
+    setLocalNote(initialValue || '');
+  }, [initialValue]);
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    setLocalNote(newValue);
+    onSave(newValue);
+  };
+
+  return (
+    <textarea
+      value={localNote}
+      onChange={handleChange}
+      placeholder="Skriv dine refleksioner her..."
+      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
+      rows="6"
+    />
+  );
+});
+
 const App = () => {
   const [currentView, setCurrentView] = useState('overview');
   const [selectedWeekId, setSelectedWeekId] = useState(null);
   const [completedWeeks, setCompletedWeeks] = useState({});
   const [notes, setNotes] = useState({});
 
+  // Load saved data on mount
   useEffect(() => {
     const savedCompleted = localStorage.getItem('completedWeeks');
     const savedNotes = localStorage.getItem('weekNotes');
@@ -78,7 +104,7 @@ const App = () => {
       try {
         setCompletedWeeks(JSON.parse(savedCompleted));
       } catch (e) {
-        console.error('Error parsing completedWeeks:', e);
+        console.error('Error loading completed weeks:', e);
       }
     }
     
@@ -86,22 +112,23 @@ const App = () => {
       try {
         setNotes(JSON.parse(savedNotes));
       } catch (e) {
-        console.error('Error parsing notes:', e);
+        console.error('Error loading notes:', e);
       }
     }
   }, []);
 
-  const progress = Math.round(
-    (Object.values(completedWeeks).filter(Boolean).length / weeks.length) * 100
-  );
-
-  const handleNoteChange = (e) => {
-    const newNotes = {
+  const handleNoteSave = (weekId, newValue) => {
+    const updatedNotes = {
       ...notes,
-      [selectedWeekId]: e.target.value
+      [weekId]: newValue
     };
-    setNotes(newNotes);
-    localStorage.setItem('weekNotes', JSON.stringify(newNotes));
+    setNotes(updatedNotes);
+    
+    try {
+      localStorage.setItem('weekNotes', JSON.stringify(updatedNotes));
+    } catch (e) {
+      console.error('Error saving note:', e);
+    }
   };
 
   const toggleWeekCompleted = (weekId, e) => {
@@ -114,6 +141,10 @@ const App = () => {
     localStorage.setItem('completedWeeks', JSON.stringify(newCompletedWeeks));
     setCurrentView('overview');
   };
+
+  const progress = Math.round(
+    (Object.values(completedWeeks).filter(Boolean).length / weeks.length) * 100
+  );
 
   const Overview = () => (
     <div className="max-w-4xl mx-auto p-6">
@@ -229,15 +260,10 @@ const App = () => {
 
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">Dine noter</h2>
-              <textarea
-                value={notes[selectedWeek.id] || ''}
-                onChange={handleNoteChange}
-                placeholder="Skriv dine refleksioner her..."
-                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
-                rows="6"
-                onBlur={() => {
-                  localStorage.setItem('weekNotes', JSON.stringify(notes));
-                }}
+              <NotesEditor
+                weekId={selectedWeek.id}
+                initialValue={notes[selectedWeek.id]}
+                onSave={(newValue) => handleNoteSave(selectedWeek.id, newValue)}
               />
             </div>
           </div>
