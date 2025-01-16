@@ -66,64 +66,52 @@ const weeks = [
 
 const App = () => {
   const [currentView, setCurrentView] = useState('overview');
-  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [selectedWeekId, setSelectedWeekId] = useState(null);
   const [completedWeeks, setCompletedWeeks] = useState({});
   const [notes, setNotes] = useState({});
 
-  // Load saved data
   useEffect(() => {
-    try {
-      const savedCompleted = localStorage.getItem('completedWeeks');
-      const savedNotes = localStorage.getItem('weekNotes');
-      
-      if (savedCompleted) {
+    const savedCompleted = localStorage.getItem('completedWeeks');
+    const savedNotes = localStorage.getItem('weekNotes');
+    
+    if (savedCompleted) {
+      try {
         setCompletedWeeks(JSON.parse(savedCompleted));
+      } catch (e) {
+        console.error('Error parsing completedWeeks:', e);
       }
-      if (savedNotes) {
+    }
+    
+    if (savedNotes) {
+      try {
         setNotes(JSON.parse(savedNotes));
+      } catch (e) {
+        console.error('Error parsing notes:', e);
       }
-    } catch (error) {
-      console.error('Error loading saved data:', error);
     }
   }, []);
-
-  // Save data when it changes
-  useEffect(() => {
-    try {
-      localStorage.setItem('completedWeeks', JSON.stringify(completedWeeks));
-    } catch (error) {
-      console.error('Error saving completed weeks:', error);
-    }
-  }, [completedWeeks]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('weekNotes', JSON.stringify(notes));
-    } catch (error) {
-      console.error('Error saving notes:', error);
-    }
-  }, [notes]);
 
   const progress = Math.round(
     (Object.values(completedWeeks).filter(Boolean).length / weeks.length) * 100
   );
 
-  const handleNoteChange = (event) => {
-    const weekId = selectedWeek.id;
-    const newValue = event.target.value;
-    
-    setNotes(prevNotes => ({
-      ...prevNotes,
-      [weekId]: newValue
-    }));
+  const handleNoteChange = (e) => {
+    const newNotes = {
+      ...notes,
+      [selectedWeekId]: e.target.value
+    };
+    setNotes(newNotes);
+    localStorage.setItem('weekNotes', JSON.stringify(newNotes));
   };
 
   const toggleWeekCompleted = (weekId, e) => {
     e?.stopPropagation();
-    setCompletedWeeks(prev => ({
-      ...prev,
-      [weekId]: !prev[weekId]
-    }));
+    const newCompletedWeeks = {
+      ...completedWeeks,
+      [weekId]: !completedWeeks[weekId]
+    };
+    setCompletedWeeks(newCompletedWeeks);
+    localStorage.setItem('completedWeeks', JSON.stringify(newCompletedWeeks));
     setCurrentView('overview');
   };
 
@@ -138,7 +126,6 @@ const App = () => {
         </p>
       </header>
 
-      {/* Progress bar */}
       <div className="bg-white rounded-lg shadow p-6 mb-8">
         <div className="flex justify-between items-center mb-2">
           <span className="text-gray-700 font-medium">Samlet fremgang</span>
@@ -152,13 +139,12 @@ const App = () => {
         </div>
       </div>
 
-      {/* Weeks grid */}
       <div className="grid gap-4">
         {weeks.map(week => (
           <div
             key={week.id}
             onClick={() => {
-              setSelectedWeek(week);
+              setSelectedWeekId(week.id);
               setCurrentView('detail');
             }}
             className={`
@@ -196,6 +182,7 @@ const App = () => {
   );
 
   const DetailView = () => {
+    const selectedWeek = weeks.find(w => w.id === selectedWeekId);
     if (!selectedWeek) return null;
 
     return (
@@ -216,7 +203,7 @@ const App = () => {
                 <h1 className="text-2xl font-bold text-gray-800">{selectedWeek.title}</h1>
               </div>
               <button
-                onClick={() => toggleWeekCompleted(selectedWeek.id)}
+                onClick={(e) => toggleWeekCompleted(selectedWeek.id, e)}
                 className={`
                   p-2 rounded-full transition-colors
                   ${completedWeeks[selectedWeek.id] 
@@ -248,6 +235,9 @@ const App = () => {
                 placeholder="Skriv dine refleksioner her..."
                 className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
                 rows="6"
+                onBlur={() => {
+                  localStorage.setItem('weekNotes', JSON.stringify(notes));
+                }}
               />
             </div>
           </div>
