@@ -219,11 +219,13 @@ const App = () => {
 
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">Dine noter</h2>
-              <textarea
+         <textarea
                 value={notes[selectedWeek.id] || ''}
                 onChange={(e) => updateNote(selectedWeek.id, e.target.value)}
                 placeholder="Skriv dine refleksioner her..."
-                className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none"
+                className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
+                rows="4"
+                style={{ minHeight: "8rem" }}
               />
             </div>
           </div>
