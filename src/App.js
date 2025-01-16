@@ -95,11 +95,13 @@ const App = () => {
     setCurrentView('overview');
   };
 
-  const updateNote = (weekId, note) => {
-    setNotes(prev => ({
-      ...prev,
+ const updateNote = (weekId, note) => {
+    const updatedNotes = {
+      ...notes,
       [weekId]: note
-    }));
+    };
+    setNotes(updatedNotes);
+    localStorage.setItem('weekNotes', JSON.stringify(updatedNotes));
   };
 
   const Overview = () => (
