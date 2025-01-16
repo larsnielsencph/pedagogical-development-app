@@ -70,20 +70,53 @@ const App = () => {
   const [completedWeeks, setCompletedWeeks] = useState({});
   const [notes, setNotes] = useState({});
 
+  // Load saved data
   useEffect(() => {
-    const savedCompleted = localStorage.getItem('completedWeeks');
-    const savedNotes = localStorage.getItem('weekNotes');
-    
-    if (savedCompleted) setCompletedWeeks(JSON.parse(savedCompleted));
-    if (savedNotes) setNotes(JSON.parse(savedNotes));
+    try {
+      const savedCompleted = localStorage.getItem('completedWeeks');
+      const savedNotes = localStorage.getItem('weekNotes');
+      
+      if (savedCompleted) {
+        setCompletedWeeks(JSON.parse(savedCompleted));
+      }
+      if (savedNotes) {
+        setNotes(JSON.parse(savedNotes));
+      }
+    } catch (error) {
+      console.error('Error loading saved data:', error);
+    }
   }, []);
 
+  // Save data when it changes
   useEffect(() => {
-    localStorage.setItem('completedWeeks', JSON.stringify(completedWeeks));
-    localStorage.setItem('weekNotes', JSON.stringify(notes));
-  }, [completedWeeks, notes]);
+    try {
+      localStorage.setItem('completedWeeks', JSON.stringify(completedWeeks));
+    } catch (error) {
+      console.error('Error saving completed weeks:', error);
+    }
+  }, [completedWeeks]);
 
-  const progress = Math.round((Object.values(completedWeeks).filter(Boolean).length / weeks.length) * 100);
+  useEffect(() => {
+    try {
+      localStorage.setItem('weekNotes', JSON.stringify(notes));
+    } catch (error) {
+      console.error('Error saving notes:', error);
+    }
+  }, [notes]);
+
+  const progress = Math.round(
+    (Object.values(completedWeeks).filter(Boolean).length / weeks.length) * 100
+  );
+
+  const handleNoteChange = (event) => {
+    const weekId = selectedWeek.id;
+    const newValue = event.target.value;
+    
+    setNotes(prevNotes => ({
+      ...prevNotes,
+      [weekId]: newValue
+    }));
+  };
 
   const toggleWeekCompleted = (weekId, e) => {
     e?.stopPropagation();
@@ -91,17 +124,7 @@ const App = () => {
       ...prev,
       [weekId]: !prev[weekId]
     }));
-    // Naviger automatisk tilbage til oversigten efter markering
     setCurrentView('overview');
-  };
-
- const updateNote = (weekId, note) => {
-    const updatedNotes = {
-      ...notes,
-      [weekId]: note
-    };
-    setNotes(updatedNotes);
-    localStorage.setItem('weekNotes', JSON.stringify(updatedNotes));
   };
 
   const Overview = () => (
@@ -219,13 +242,12 @@ const App = () => {
 
             <div>
               <h2 className="text-lg font-semibold text-gray-800 mb-2">Dine noter</h2>
-         <textarea
+              <textarea
                 value={notes[selectedWeek.id] || ''}
-                onChange={(e) => updateNote(selectedWeek.id, e.target.value)}
+                onChange={handleNoteChange}
                 placeholder="Skriv dine refleksioner her..."
-                className="w-full h-32 p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
-                rows="4"
-                style={{ minHeight: "8rem" }}
+                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-pink-200 focus:border-pink-300 outline-none resize-y"
+                rows="6"
               />
             </div>
           </div>
